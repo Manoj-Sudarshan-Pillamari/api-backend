@@ -19,8 +19,8 @@ const contentSchema = new mongoose.Schema(
     },
     rank: {
       type: Number,
-      required: [true, "Rank is required"],
-      min: [1, "Rank must be at least 1"],
+      default: 0,
+      min: [0, "Rank cannot be negative"],
     },
     priority: {
       type: Boolean,

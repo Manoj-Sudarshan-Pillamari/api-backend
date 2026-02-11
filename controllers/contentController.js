@@ -1,31 +1,27 @@
 const Content = require("../models/Content");
 const cloudinary = require("../config/cloudinary");
 
-// ============================================
-// @desc    Save premium brand from admin form
-// @route   POST /api/content
-// @access  Public
-// ============================================
 exports.saveContent = async (req, res) => {
   try {
     const { brandName, description, type, rank, priority } = req.body;
 
-    // ---- Validate all required fields ----
-    if (
-      !brandName ||
-      !description ||
-      !type ||
-      !rank ||
-      priority === undefined
-    ) {
+    const isPriority = priority === "true" || priority === true;
+
+    if (!brandName || !description || !type || priority === undefined) {
       return res.status(400).json({
         success: false,
         message:
-          "All fields are required: brandName, description, type, rank, priority",
+          "All fields are required: brandName, description, type, priority",
       });
     }
 
-    // ---- Validate media file is uploaded ----
+    if (isPriority && (!rank || Number(rank) < 1)) {
+      return res.status(400).json({
+        success: false,
+        message: "Rank must be at least 1 when priority is enabled",
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -33,7 +29,6 @@ exports.saveContent = async (req, res) => {
       });
     }
 
-    // ---- Process uploaded file from Cloudinary ----
     const media = {
       url: req.file.path,
       publicId: req.file.filename,
@@ -45,13 +40,12 @@ exports.saveContent = async (req, res) => {
       filename: req.file.originalname,
     };
 
-    // ---- Save to MongoDB ----
     const content = await Content.create({
       brandName,
       description,
       type,
-      rank: Number(rank),
-      priority: priority === "true" || priority === true,
+      rank: isPriority ? Number(rank) : 0,
+      priority: isPriority,
       media,
     });
 
@@ -63,7 +57,6 @@ exports.saveContent = async (req, res) => {
   } catch (error) {
     console.error("Save Error:", error);
 
-    // Handle duplicate rank or validation errors
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({
@@ -80,14 +73,8 @@ exports.saveContent = async (req, res) => {
   }
 };
 
-// ============================================
-// @desc    Fetch all premium brands for user view
-// @route   GET /api/content
-// @access  Public
-// ============================================
 exports.fetchContent = async (req, res) => {
   try {
-    // Sort by rank (ascending) and priority (true first)
     const content = await Content.find().sort({
       priority: -1,
       rank: 1,
@@ -108,11 +95,6 @@ exports.fetchContent = async (req, res) => {
   }
 };
 
-// ============================================
-// @desc    Fetch single premium brand by ID
-// @route   GET /api/content/:id
-// @access  Public
-// ============================================
 exports.fetchContentById = async (req, res) => {
   try {
     const content = await Content.findById(req.params.id);
@@ -138,11 +120,6 @@ exports.fetchContentById = async (req, res) => {
   }
 };
 
-// ============================================
-// @desc    Update premium brand
-// @route   PUT /api/content/:id
-// @access  Public
-// ============================================
 exports.updateContent = async (req, res) => {
   try {
     const { brandName, description, type, rank, priority } = req.body;
@@ -156,19 +133,25 @@ exports.updateContent = async (req, res) => {
       });
     }
 
-    // ---- Update fields ----
+    const isPriority =
+      priority !== undefined
+        ? priority === "true" || priority === true
+        : content.priority;
+
+    if (isPriority && rank !== undefined && Number(rank) < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Rank must be at least 1 when priority is enabled",
+      });
+    }
+
     content.brandName = brandName || content.brandName;
     content.description = description || content.description;
     content.type = type || content.type;
-    content.rank = rank ? Number(rank) : content.rank;
+    content.priority = isPriority;
+    content.rank = isPriority ? (rank ? Number(rank) : content.rank) : 0;
 
-    if (priority !== undefined) {
-      content.priority = priority === "true" || priority === true;
-    }
-
-    // ---- If new media file is uploaded ----
     if (req.file) {
-      // Delete old media from Cloudinary
       if (content.media && content.media.publicId) {
         try {
           const resourceType =
@@ -176,13 +159,11 @@ exports.updateContent = async (req, res) => {
           await cloudinary.uploader.destroy(content.media.publicId, {
             resource_type: resourceType,
           });
-          console.log(`🗑️ Old media deleted: ${content.media.publicId}`);
         } catch (cloudError) {
-          console.error(`⚠️ Cloudinary delete error: ${cloudError.message}`);
+          console.error("Cloudinary delete error:", cloudError.message);
         }
       }
 
-      // Set new media
       content.media = {
         url: req.file.path,
         publicId: req.file.filename,
@@ -212,11 +193,6 @@ exports.updateContent = async (req, res) => {
   }
 };
 
-// ============================================
-// @desc    Delete premium brand
-// @route   DELETE /api/content/:id
-// @access  Public
-// ============================================
 exports.deleteContent = async (req, res) => {
   try {
     const content = await Content.findById(req.params.id);
@@ -228,20 +204,17 @@ exports.deleteContent = async (req, res) => {
       });
     }
 
-    // ---- Delete media from Cloudinary ----
     if (content.media && content.media.publicId) {
       try {
         const resourceType = content.media.type === "video" ? "video" : "image";
         await cloudinary.uploader.destroy(content.media.publicId, {
           resource_type: resourceType,
         });
-        console.log(`🗑️ Deleted from Cloudinary: ${content.media.publicId}`);
       } catch (cloudError) {
-        console.error(`⚠️ Cloudinary delete error: ${cloudError.message}`);
+        console.error("Cloudinary delete error:", cloudError.message);
       }
     }
 
-    // ---- Delete from MongoDB ----
     await Content.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
