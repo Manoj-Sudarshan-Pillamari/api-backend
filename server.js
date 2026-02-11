@@ -3,24 +3,16 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 
-// ============================================
 // Load environment variables
-// ============================================
 dotenv.config();
 
-// ============================================
 // Connect to MongoDB
-// ============================================
 connectDB();
 
-// ============================================
 // Initialize Cloudinary
-// ============================================
 require("./config/cloudinary");
 
-// ============================================
 // Initialize Express App
-// ============================================
 const app = express();
 
 // ============================================
