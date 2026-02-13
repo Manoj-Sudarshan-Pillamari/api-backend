@@ -3,15 +3,30 @@ const cloudinary = require("../config/cloudinary");
 
 exports.saveContent = async (req, res) => {
   try {
-    const { brandName, description, type, rank, priority } = req.body;
+    const {
+      brandName,
+      description,
+      type,
+      tile,
+      rank,
+      priority,
+      autoplaySpeed,
+      link,
+    } = req.body;
 
     const isPriority = priority === "true" || priority === true;
 
-    if (!brandName || !description || !type || priority === undefined) {
+    if (!brandName || !description || !tile || priority === undefined) {
       return res.status(400).json({
         success: false,
-        message:
-          "All fields are required: brandName, description, type, priority",
+        message: "Required fields: brandName, description, tile, priority",
+      });
+    }
+
+    if (Number(tile) < 1 || Number(tile) > 28) {
+      return res.status(400).json({
+        success: false,
+        message: "Tile must be between 1 and 28",
       });
     }
 
@@ -43,9 +58,12 @@ exports.saveContent = async (req, res) => {
     const content = await Content.create({
       brandName,
       description,
-      type,
+      type: type || "",
+      tile: Number(tile),
       rank: isPriority ? Number(rank) : 0,
       priority: isPriority,
+      autoplaySpeed: autoplaySpeed ? Number(autoplaySpeed) : 3000,
+      link: link || "",
       media,
     });
 
@@ -76,6 +94,7 @@ exports.saveContent = async (req, res) => {
 exports.fetchContent = async (req, res) => {
   try {
     const content = await Content.find().sort({
+      tile: 1,
       priority: -1,
       rank: 1,
     });
@@ -122,7 +141,16 @@ exports.fetchContentById = async (req, res) => {
 
 exports.updateContent = async (req, res) => {
   try {
-    const { brandName, description, type, rank, priority } = req.body;
+    const {
+      brandName,
+      description,
+      type,
+      tile,
+      rank,
+      priority,
+      autoplaySpeed,
+      link,
+    } = req.body;
 
     const content = await Content.findById(req.params.id);
 
@@ -145,11 +173,23 @@ exports.updateContent = async (req, res) => {
       });
     }
 
+    if (tile !== undefined && (Number(tile) < 1 || Number(tile) > 28)) {
+      return res.status(400).json({
+        success: false,
+        message: "Tile must be between 1 and 28",
+      });
+    }
+
     content.brandName = brandName || content.brandName;
     content.description = description || content.description;
-    content.type = type || content.type;
+    content.type = type !== undefined ? type : content.type;
+    content.tile = tile ? Number(tile) : content.tile;
     content.priority = isPriority;
     content.rank = isPriority ? (rank ? Number(rank) : content.rank) : 0;
+    content.autoplaySpeed = autoplaySpeed
+      ? Number(autoplaySpeed)
+      : content.autoplaySpeed;
+    content.link = link !== undefined ? link : content.link;
 
     if (req.file) {
       if (content.media && content.media.publicId) {

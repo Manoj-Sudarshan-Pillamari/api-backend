@@ -14,8 +14,14 @@ const contentSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      required: [true, "Type is required"],
       trim: true,
+      default: "",
+    },
+    tile: {
+      type: Number,
+      required: [true, "Tile number is required"],
+      min: [1, "Tile must be at least 1"],
+      max: [28, "Tile cannot exceed 28"],
     },
     rank: {
       type: Number,
@@ -26,6 +32,17 @@ const contentSchema = new mongoose.Schema(
       type: Boolean,
       required: [true, "Priority is required"],
       default: false,
+    },
+    autoplaySpeed: {
+      type: Number,
+      default: 3000,
+      min: [1000, "Minimum autoplay speed is 1000ms"],
+      max: [30000, "Maximum autoplay speed is 30000ms"],
+    },
+    link: {
+      type: String,
+      trim: true,
+      default: "",
     },
     media: {
       url: {
