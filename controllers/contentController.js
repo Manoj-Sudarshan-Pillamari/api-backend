@@ -16,10 +16,17 @@ exports.saveContent = async (req, res) => {
 
     const isPriority = priority === "true" || priority === true;
 
-    if (!brandName || !description || !tile || priority === undefined) {
+    if (
+      !brandName ||
+      !description ||
+      !tile ||
+      !link ||
+      priority === undefined
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Required fields: brandName, description, tile, priority",
+        message:
+          "Required fields: brandName, description, tile, link, priority",
       });
     }
 
@@ -63,7 +70,7 @@ exports.saveContent = async (req, res) => {
       rank: isPriority ? Number(rank) : 0,
       priority: isPriority,
       autoplaySpeed: autoplaySpeed ? Number(autoplaySpeed) : 3000,
-      link: link || "",
+      link,
       media,
     });
 
@@ -189,7 +196,7 @@ exports.updateContent = async (req, res) => {
     content.autoplaySpeed = autoplaySpeed
       ? Number(autoplaySpeed)
       : content.autoplaySpeed;
-    content.link = link !== undefined ? link : content.link;
+    content.link = link || content.link;
 
     if (req.file) {
       if (content.media && content.media.publicId) {

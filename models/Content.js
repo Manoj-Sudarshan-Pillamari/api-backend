@@ -41,8 +41,8 @@ const contentSchema = new mongoose.Schema(
     },
     link: {
       type: String,
+      required: [true, "Link is required"],
       trim: true,
-      default: "",
     },
     media: {
       url: {
