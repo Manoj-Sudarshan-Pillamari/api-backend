@@ -151,6 +151,36 @@ exports.fetchContent = async (req, res) => {
   }
 };
 
+// NEW — returns only active + currently live content
+exports.fetchActiveContent = async (req, res) => {
+  try {
+    const now = new Date();
+
+    const content = await Content.find({
+      status: "active",
+      startDateTime: { $lte: now },
+      endDateTime: { $gte: now },
+    }).sort({
+      tile: 1,
+      priority: -1,
+      rank: 1,
+    });
+
+    res.status(200).json({
+      success: true,
+      count: content.length,
+      data: content,
+    });
+  } catch (error) {
+    console.error("Fetch Active Content Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching active content",
+      error: error.message,
+    });
+  }
+};
+
 exports.fetchContentById = async (req, res) => {
   try {
     const content = await Content.findById(req.params.id);
@@ -220,7 +250,6 @@ exports.updateContent = async (req, res) => {
       });
     }
 
-    // Validate dates if either is being updated
     const newStart = startDateTime
       ? new Date(startDateTime)
       : content.startDateTime;
