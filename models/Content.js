@@ -44,6 +44,19 @@ const contentSchema = new mongoose.Schema(
       required: [true, "Link is required"],
       trim: true,
     },
+    startDateTime: {
+      type: Date,
+      required: [true, "Start date-time is required"],
+    },
+    endDateTime: {
+      type: Date,
+      required: [true, "End date-time is required"],
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
     media: {
       url: {
         type: String,
@@ -65,5 +78,18 @@ const contentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Validate endDateTime > startDateTime
+contentSchema.pre("validate", function (next) {
+  if (this.startDateTime && this.endDateTime) {
+    if (new Date(this.endDateTime) <= new Date(this.startDateTime)) {
+      this.invalidate(
+        "endDateTime",
+        "End date-time must be after start date-time"
+      );
+    }
+  }
+  next();
+});
 
 module.exports = mongoose.model("Content", contentSchema);

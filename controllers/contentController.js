@@ -12,6 +12,9 @@ exports.saveContent = async (req, res) => {
       priority,
       autoplaySpeed,
       link,
+      startDateTime,
+      endDateTime,
+      status,
     } = req.body;
 
     const isPriority = priority === "true" || priority === true;
@@ -27,6 +30,30 @@ exports.saveContent = async (req, res) => {
         success: false,
         message:
           "Required fields: brandName, description, tile, link, priority",
+      });
+    }
+
+    if (!startDateTime || !endDateTime) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date-time and End date-time are required",
+      });
+    }
+
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(endDateTime);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date-time format",
+      });
+    }
+
+    if (endDate <= startDate) {
+      return res.status(400).json({
+        success: false,
+        message: "End date-time must be after start date-time",
       });
     }
 
@@ -71,6 +98,9 @@ exports.saveContent = async (req, res) => {
       priority: isPriority,
       autoplaySpeed: autoplaySpeed ? Number(autoplaySpeed) : 3000,
       link,
+      startDateTime: startDate,
+      endDateTime: endDate,
+      status: status || "active",
       media,
     });
 
@@ -157,6 +187,9 @@ exports.updateContent = async (req, res) => {
       priority,
       autoplaySpeed,
       link,
+      startDateTime,
+      endDateTime,
+      status,
     } = req.body;
 
     const content = await Content.findById(req.params.id);
@@ -187,6 +220,33 @@ exports.updateContent = async (req, res) => {
       });
     }
 
+    // Validate dates if either is being updated
+    const newStart = startDateTime
+      ? new Date(startDateTime)
+      : content.startDateTime;
+    const newEnd = endDateTime ? new Date(endDateTime) : content.endDateTime;
+
+    if (startDateTime && isNaN(newStart.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid start date-time format",
+      });
+    }
+
+    if (endDateTime && isNaN(newEnd.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid end date-time format",
+      });
+    }
+
+    if (newEnd <= newStart) {
+      return res.status(400).json({
+        success: false,
+        message: "End date-time must be after start date-time",
+      });
+    }
+
     content.brandName = brandName || content.brandName;
     content.description = description || content.description;
     content.type = type !== undefined ? type : content.type;
@@ -197,6 +257,9 @@ exports.updateContent = async (req, res) => {
       ? Number(autoplaySpeed)
       : content.autoplaySpeed;
     content.link = link || content.link;
+    content.startDateTime = newStart;
+    content.endDateTime = newEnd;
+    content.status = status !== undefined ? status : content.status;
 
     if (req.file) {
       if (content.media && content.media.publicId) {
@@ -235,6 +298,35 @@ exports.updateContent = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error updating premium brand",
+      error: error.message,
+    });
+  }
+};
+
+exports.toggleStatus = async (req, res) => {
+  try {
+    const content = await Content.findById(req.params.id);
+
+    if (!content) {
+      return res.status(404).json({
+        success: false,
+        message: "Premium Brand not found",
+      });
+    }
+
+    content.status = content.status === "active" ? "inactive" : "active";
+    const updatedContent = await content.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Status changed to ${updatedContent.status}`,
+      data: updatedContent,
+    });
+  } catch (error) {
+    console.error("Toggle Status Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error toggling status",
       error: error.message,
     });
   }
