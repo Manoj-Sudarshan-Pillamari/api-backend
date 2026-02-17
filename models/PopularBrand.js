@@ -10,6 +10,7 @@ const popularBrandSchema = new mongoose.Schema(
     rank: {
       type: Number,
       required: [true, "Rank is required"],
+      unique: true,
       min: [1, "Rank must be at least 1"],
     },
     media: {

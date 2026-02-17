@@ -19,6 +19,15 @@ exports.savePopularBrand = async (req, res) => {
       });
     }
 
+    // Check for duplicate rank
+    const existingRank = await PopularBrand.findOne({ rank: Number(rank) });
+    if (existingRank) {
+      return res.status(400).json({
+        success: false,
+        message: `Rank ${rank} is already assigned to another popular brand. Please use a unique rank.`,
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -129,6 +138,20 @@ exports.updatePopularBrand = async (req, res) => {
         success: false,
         message: "Rank must be at least 1",
       });
+    }
+
+    // Check for duplicate rank (exclude current document)
+    if (rank !== undefined) {
+      const existingRank = await PopularBrand.findOne({
+        rank: Number(rank),
+        _id: { $ne: req.params.id },
+      });
+      if (existingRank) {
+        return res.status(400).json({
+          success: false,
+          message: `Rank ${rank} is already assigned to another popular brand. Please use a unique rank.`,
+        });
+      }
     }
 
     popularBrand.link = link || popularBrand.link;
