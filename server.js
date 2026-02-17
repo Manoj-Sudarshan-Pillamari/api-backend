@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.json({
-    message: "🚀 Premium Brands Backend API is running!",
+    message: "🚀 Brands Backend API is running!",
     status: "OK",
     timestamp: new Date().toISOString(),
   });
@@ -24,6 +24,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/content", require("./routes/contentRoutes"));
 app.use("/api/popular-brands", require("./routes/popularBrandRoutes"));
+app.use("/api/pip-videos", require("./routes/pipVideoRoutes"));
 
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err.message);

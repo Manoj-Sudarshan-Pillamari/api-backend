@@ -139,6 +139,7 @@ exports.fetchContent = async (req, res) => {
     res.status(200).json({
       success: true,
       count: content.length,
+      tileCount: 7,
       data: content,
     });
   } catch (error) {
@@ -151,7 +152,6 @@ exports.fetchContent = async (req, res) => {
   }
 };
 
-// NEW — returns only active + currently live content
 exports.fetchActiveContent = async (req, res) => {
   try {
     const now = new Date();
@@ -169,6 +169,7 @@ exports.fetchActiveContent = async (req, res) => {
     res.status(200).json({
       success: true,
       count: content.length,
+      tileCount: 7,
       data: content,
     });
   } catch (error) {
