@@ -71,6 +71,21 @@ exports.savePopularBrand = async (req, res) => {
       });
     }
 
+    // Check duplicate rank only when priority is enabled — same tile + same rank + priority
+    if (isPriority) {
+      const existingRank = await PopularBrand.findOne({
+        tile: Number(tile),
+        rank: Number(rank),
+        priority: true,
+      });
+      if (existingRank) {
+        return res.status(400).json({
+          success: false,
+          message: `Rank ${rank} already exists in Tile ${tile} with priority. Please provide a unique rank value.`,
+        });
+      }
+    }
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -249,6 +264,23 @@ exports.updatePopularBrand = async (req, res) => {
         success: false,
         message: "Tile must be between 1 and 28",
       });
+    }
+
+    // Check duplicate rank only when priority is enabled — same tile + same rank + priority (exclude self)
+    if (isPriority && rank !== undefined) {
+      const checkTile = tile ? Number(tile) : popularBrand.tile;
+      const existingRank = await PopularBrand.findOne({
+        tile: checkTile,
+        rank: Number(rank),
+        priority: true,
+        _id: { $ne: req.params.id },
+      });
+      if (existingRank) {
+        return res.status(400).json({
+          success: false,
+          message: `Rank ${rank} already exists in Tile ${checkTile} with priority. Please provide a unique rank value.`,
+        });
+      }
     }
 
     const newStart = startDateTime
