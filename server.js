@@ -1,39 +1,56 @@
 const express = require("express");
 const cors = require("cors");
+const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-const contentRoutes = require("./routes/contentRoutes");
-const popularBrandRoutes = require("./routes/popularBrandRoutes");
 
-require("dotenv").config();
+dotenv.config();
+connectDB();
+require("./config/cloudinary");
 
 const app = express();
 
-// Connect to DB
-connectDB();
+app.use(cors());
 
-// CORS
-app.use(
-  cors({
-    origin: [process.env.ADMIN_FRONTEND_URL, process.env.USER_FRONTEND_URL],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    credentials: true,
-  })
-);
-
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use("/api/content", contentRoutes);
-app.use("/api/popular-brands", popularBrandRoutes);
-
-// Health check
 app.get("/", (req, res) => {
-  res.json({ message: "API is running" });
+  res.json({
+    message: "🚀 Premium Brands Backend API is running!",
+    status: "OK",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.use("/api/content", require("./routes/contentRoutes"));
+app.use("/api/popular-brands", require("./routes/popularBrandRoutes"));
+
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err.message);
+
+  if (err.message === "Only images, videos and GIFs are allowed!") {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      success: false,
+      message: "File size exceeds 50 MB limit",
+    });
+  }
+
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: err.message,
+  });
 });
 
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
